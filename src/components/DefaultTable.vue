@@ -66,10 +66,10 @@ const selectedItem = computed(() => {
 })
 
 const footerColSpan = computed(() => {
-  if (props.checkBox) {
+  if (props.checkBox || slotIsBeingUsed('actions')) {
     return props.headers.length + 2
   }
-  return props.headers.length + 1
+  return props.headers.length
 })
 
 const handleCheckBoxClick = (index) => {
