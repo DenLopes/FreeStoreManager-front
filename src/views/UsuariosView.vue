@@ -136,11 +136,12 @@ const passwordMin6Rule = {
   validate: (value) => value.length >= 6,
   message: 'A senha deve ter no mínimo 6 caracteres'
 }
+
 </script>
 <template>
   <div>
     <Suspense>
-      <DefaultTable :route="'/api/users'" :headers="headers" :key="tableKey">
+      <DefaultTable :route="'/api/users'"  :headers="headers" :key="tableKey" checkBox>
         <template #toolbar="{ selectRow }">
           <div class="flex justify-end">
             <button

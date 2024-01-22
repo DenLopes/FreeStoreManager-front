@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, toRaw } from 'vue'
-import DefaultInput from './DefaultInput.vue';
+import { ref, computed, toRaw, useSlots } from 'vue'
+import DefaultInput from './DefaultInput.vue'
 import axios from '@/services/axios'
 
 //the headers prop is an array of objects with the following structure:
@@ -12,6 +12,7 @@ import axios from '@/services/axios'
 //   bodyStyle: 'text-left'
 //   bodyClass: 'text-primary'
 //}
+
 const props = defineProps({
   headers: {
     type: Array,
@@ -20,8 +21,16 @@ const props = defineProps({
   route: {
     type: String,
     required: true
+  },
+  checkBox: {
+    type: Boolean,
+    default: false
   }
 })
+
+const emit = defineEmits(['clickedRow'])
+
+const slots = useSlots();
 
 const selectedRow = ref(null)
 const search = ref('')
@@ -32,22 +41,22 @@ const currentPage = ref(1)
 
 const filteredData = computed(() => {
   if (search.value) {
-    return data.value.filter(item => 
-      props.headers.some(header => 
+    return data.value.filter((item) =>
+      props.headers.some((header) =>
         item[header.value]?.toString().toLowerCase().includes(search.value.toLowerCase())
       )
-    );
+    )
   }
-  return data.value;
-});
+  return data.value
+})
 
-const totalPages = computed(() => Math.ceil(filteredData.value.length / rowsPerPage.value));
+const totalPages = computed(() => Math.ceil(filteredData.value.length / rowsPerPage.value))
 
 const paginatedFilteredData = computed(() => {
-  const start = (currentPage.value - 1) * rowsPerPage.value;
-  const end = start + rowsPerPage.value;
-  return filteredData.value.slice(start, end);
-});
+  const start = (currentPage.value - 1) * rowsPerPage.value
+  const end = start + rowsPerPage.value
+  return filteredData.value.slice(start, end)
+})
 
 const selectedItem = computed(() => {
   if (selectedRow.value !== null) {
@@ -57,15 +66,22 @@ const selectedItem = computed(() => {
 })
 
 const footerColSpan = computed(() => {
-  return props.headers.length + 2
+  if (props.checkBox) {
+    return props.headers.length + 2
+  }
+  return props.headers.length + 1
 })
 
-const handleRowClick = (index) => {
+const handleCheckBoxClick = (index) => {
   if (selectedRow.value === index) {
     selectedRow.value = null
   } else {
     selectedRow.value = index
   }
+}
+
+const slotIsBeingUsed = (name) => {
+  return slots[name] !== undefined
 }
 
 await axios.get(props.route).then((response) => {
@@ -75,14 +91,14 @@ await axios.get(props.route).then((response) => {
 <template>
   <div class="overflow-x-auto">
     <div class="flex justify-between p-2">
-      <DefaultInput v-model="search" placeholder="Pesquisar" class="input-lg"/>
+      <DefaultInput v-model="search" placeholder="Pesquisar" class="input-lg" />
       <slot name="toolbar" :selectRow="selectedItem" />
     </div>
     <table class="table table-md bg-primary/5 shadow-lg">
       <!-- head -->
       <thead class="h-12">
         <tr class="z-20">
-          <th></th>
+          <th v-if="checkBox"></th>
           <th
             v-for="header in props.headers"
             :key="header?.value"
@@ -92,6 +108,9 @@ await axios.get(props.route).then((response) => {
           >
             {{ header?.text }}
           </th>
+          <th v-if="slotIsBeingUsed('actions')" class="text-left">
+            Ações
+          </th>
         </tr>
       </thead>
       <tbody class="bg-base-100">
@@ -99,10 +118,15 @@ await axios.get(props.route).then((response) => {
           v-for="(item, index) in paginatedFilteredData"
           :key="item?.id"
           class="hover cursor-pointer"
-          @click="handleRowClick(index)"
+          @click="emit('clickedRow', item)"
         >
-          <th>
-            <input type="checkbox" class="checkbox" :checked="selectedRow === index" @click.stop="handleRowClick(index)" />
+          <th v-if="checkBox">
+            <input
+              type="checkbox"
+              class="checkbox"
+              :checked="selectedRow === index"
+              @click.stop="handleCheckBoxClick(index)"
+            />
           </th>
           <td
             v-for="header in props.headers"
@@ -112,7 +136,7 @@ await axios.get(props.route).then((response) => {
           >
             {{ item[header?.value] }}
           </td>
-          <td>
+          <td v-if="slotIsBeingUsed('actions')">
             <slot name="actions" :item="item" />
           </td>
         </tr>
@@ -141,7 +165,7 @@ await axios.get(props.route).then((response) => {
                   :disabled="currentPage === totalPages"
                   class="cursor-pointer"
                 >
-                <v-icon name="fa-chevron-right" class="w-5 h-5 text-primary hover:scale-110" />
+                  <v-icon name="fa-chevron-right" class="w-5 h-5 text-primary hover:scale-110" />
                 </button>
               </div>
             </div>
